@@ -1,0 +1,112 @@
+/*
+ * Copyright (c) 2016, CESAR.
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms
+ * of the BSD license. See the LICENSE file for details.
+ *
+ */
+
+/*
+ * The default behavior for a Thing is to send data every 30 seconds.
+ * To change its behavior on the firmware side, use the function
+ * registerDefaultConfig(). See the documentation and lib examples.
+ */
+#include <Arduino.h>
+#include <KNoTThing.h>
+#include <EEPROM.h>
+
+#define LIGHT_BULB_PIN      3
+#define LIGHT_BULB_ID       1
+#define LIGHT_BULB_NAME     "Light bulb"
+
+KNoTThing thing;
+
+
+void clearEEPROM(){
+	// initialize the LED pin as an output.
+	//pinMode(13, OUTPUT);
+
+	/***
+		Iterate through each byte of the EEPROM storage.
+
+		Larger AVR processors have larger EEPROM sizes, E.g:
+		- Arduno Duemilanove: 512b EEPROM storage.
+		- Arduino Uno:        1kb EEPROM storage.
+		- Arduino Mega:       4kb EEPROM storage.
+
+		Rather than hard-coding the length, you should use the pre-provided length function.
+		This will make your code portable to all AVR processors.
+	***/
+
+	for (int i = 0 ; i < EEPROM.length() ; i++) {
+		EEPROM.write(i, 0);
+	}
+	Serial.println(F("EEPROM cleared!"));
+	 //turn the LED on when we're done
+	//digitalWrite(13, HIGH);
+}
+
+
+static int light_read(uint8_t *val)
+{
+    //*val = digitalRead(LIGHT_BULB_PIN);
+    //Serial.print(F("Light Status: "));
+    if (*val){
+      //Serial.println(F("ON"));
+    }else{
+      //Serial.println(F("OFF"));
+    }
+    return 0;
+}
+
+
+
+
+
+static int light_write(uint8_t *val)
+{
+    Serial.print(F("Light Status: "));
+    if (*val){
+      Serial.println(F("ON"));
+			digitalWrite(LIGHT_BULB_PIN, HIGH);
+    }else{
+      Serial.println(F("OFF"));
+			digitalWrite(LIGHT_BULB_PIN, LOW);
+    }
+      /* TODO: Save light status in EEMPROM in to handle when reboot */
+    return 0;
+}
+
+
+
+
+
+
+void setup()
+{
+    Serial.begin(115200);
+    //uncomment for tests
+    //clearEEPROM();
+		//delay(1000000);
+
+    pinMode(LIGHT_BULB_PIN, OUTPUT);
+
+
+    /* TODO: Read lamp status from eeprom for reboot cases */
+    thing.init("KNoTThing");
+    thing.registerBoolData(LIGHT_BULB_NAME, LIGHT_BULB_ID, KNOT_TYPE_ID_SWITCH,
+        KNOT_UNIT_NOT_APPLICABLE, light_read, light_write);
+
+    /* Send data every 10 seconds*/
+    thing.registerDefaultConfig(LIGHT_BULB_ID, KNOT_EVT_FLAG_TIME, 10, 0, 0, 0, 0);
+
+    Serial.println(F("Remote Light Bulb KNoT Demo"));
+
+}
+
+
+void loop()
+{
+    thing.run();
+}
